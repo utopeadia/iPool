@@ -2,7 +2,7 @@ fastapi==0.103.1
 uvicorn==0.23.2
 sqlalchemy==2.0.20
 aiohttp==3.8.5
-async-socks==0.2.4
+python-socks==2.3.0
 redis==4.6.0
 pydantic==2.3.0
 pydantic-settings==2.0.3
