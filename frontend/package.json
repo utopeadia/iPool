@@ -1,0 +1,29 @@
+{
+  "name": "ipool-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "serve": "vue-cli-service serve",
+    "build": "vue-cli-service build",
+    "lint": "vue-cli-service lint"
+  },
+  "dependencies": {
+    "vue": "^3.2.47",
+    "vue-router": "^4.1.6",
+    "vuex": "^4.1.0",
+    "element-plus": "^2.3.3",
+    "axios": "^1.3.4",
+    "echarts": "^5.4.2",
+    "dayjs": "^1.11.7",
+    "@element-plus/icons-vue": "^2.1.0"
+  },
+  "devDependencies": {
+    "@vue/cli-service": "~5.0.8",
+    "@vue/cli-plugin-babel": "~5.0.8",
+    "@vue/cli-plugin-eslint": "~5.0.8",
+    "eslint": "^8.37.0",
+    "eslint-plugin-vue": "^9.10.0",
+    "sass": "^1.60.0",
+    "sass-loader": "^13.2.2"
+  }
+}

@@ -1,61 +1,86 @@
 version: '3.8'
 
 services:
-  app:
-    build: .
-    container_name: ipool-app
-    restart: always
-    ports:
-      - "${API_PORT:-8000}:8000"      # API端口
-      - "${SOCKS5_PORT:-1080}:1080"   # Socks5代理端口
-      - "${HTTP_PROXY_PORT:-8080}:8080" # HTTP代理端口
-    env_file:
-      - .env
-    depends_on:
-      - postgres
-      - redis
-    networks:
-      - ipool-network
-    volumes:
-      - ./ipool.log:/app/ipool.log
-
+  # PostgreSQL 数据库服务
   postgres:
-    image: postgres:14-alpine
+    image: postgres:14
     container_name: ipool-postgres
-    restart: always
     environment:
-      - POSTGRES_USER=${DB_USER:-postgres}
-      - POSTGRES_PASSWORD=${DB_PASSWORD:-password}
-      - POSTGRES_DB=${DB_NAME:-ipool}
+      POSTGRES_USER: ipool
+      POSTGRES_PASSWORD: ipool_password
+      POSTGRES_DB: ipool
     volumes:
-      - postgres-data:/var/lib/postgresql/data
-    networks:
-      - ipool-network
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      test: ["CMD-SHELL", "pg_isready -U ipool"]
       interval: 10s
       timeout: 5s
       retries: 5
-
+    restart: unless-stopped
+  
+  # Redis 缓存服务  
   redis:
-    image: redis:7-alpine
+    image: redis:6-alpine
     container_name: ipool-redis
-    restart: always
-    command: redis-server --requirepass ${REDIS_PASSWORD:-}
+    command: redis-server --appendonly yes --requirepass ipool_redis_password
     volumes:
-      - redis-data:/data
-    networks:
-      - ipool-network
+      - redis_data:/data
+    ports:
+      - "6379:6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
-
-networks:
-  ipool-network:
-    driver: bridge
+    restart: unless-stopped
+  
+  # 后端API服务
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ipool-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=ipool
+      - DB_PASSWORD=ipool_password
+      - DB_NAME=ipool
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=ipool_redis_password
+      - LOG_LEVEL=info
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./logs:/app/logs
+    restart: unless-stopped
+  
+  # 前端服务
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ipool-frontend
+    ports:
+      - "80:80"
+    volumes:
+      - ./frontend:/app
+      - ./frontend/nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - backend
+    restart: unless-stopped
 
 volumes:
-  postgres-data:
-  redis-data:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
